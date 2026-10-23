@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>SQL Pro 4.0 · Autenticação Supabase</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#eef5fe;background:#071624}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 30% 0%,#183d56,#071624 60%);padding:22px 14px}main{max-width:860px;margin:26px auto}.brand{display:flex;align-items:center;gap:13px;margin-bottom:24px}.brand svg{flex-shrink:0}.brand b{font-size:22px;letter-spacing:-.03em}.brand small{display:block;color:#a6bccb;font-size:12px;margin-top:3px}.card{background:#0e2539;border:1px solid #2d4c63;border-radius:20px;padding:24px;margin:16px 0;box-shadow:0 15px 50px #0003}h1{font-size:clamp(24px,5vw,32px);margin:0 0 8px}h2{font-size:18px;margin:0 0 14px}p{color:#b7ccdb;line-height:1.55}label{font-size:13px;font-weight:650;display:block;margin:11px 0 5px}input,select,textarea{width:100%;background:#061928;border:1px solid #54718a;border-radius:10px;color:#fff;padding:12px;font:inherit}textarea{min-height:75px;resize:vertical}input:focus,select:focus,textarea:focus{outline:2px solid #5ae0bd;outline-offset:2px}button{background:#dcb16d;border:0;color:#102235;font-size:14px;font-weight:750;padding:12px 16px;border-radius:11px;cursor:pointer}button.secondary{background:transparent;color:#d9edf7;border:1px solid #607f96}button:disabled{opacity:.6;cursor:wait}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.msg{border-radius:10px;background:#163e42;color:#c7faeb;padding:12px 14px;min-height:20px}.msg.error{background:#573037;color:#ffe0df}.muted{font-size:12px;color:#9ab2c5}.app{padding:14px;margin:10px 0;border:1px solid #35556f;border-radius:13px;display:flex;justify-content:space-between;gap:16px;align-items:center}.app strong{display:block;font-size:16px}.app span{color:#acc5d4;font-size:12px}.app a{display:inline-block;text-decoration:none;background:#67dec5;color:#092235;border-radius:10px;padding:10px 12px;font-weight:750;white-space:nowrap}.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}hr{border:0;border-top:1px solid #34556e;margin:22px 0}code{overflow-wrap:anywhere}footer{color:#8ba8be;text-align:center;font-size:12px;margin-top:25px}@media(max-width:640px){.row,.admin-grid{grid-template-columns:1fr}.card{padding:19px}.app{align-items:start;flex-direction:column}}
+</style>
+</head>
+<body>
+<main>
+<header class="brand"><svg width="53" height="53" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SQL Pro"><rect width="52" height="52" rx="13" fill="#123d51"/><path d="M13 26a13 6 0 0 1 26 0v10a13 6 0 0 1-26 0Z" fill="none" stroke="#67dec5" stroke-width="2.6"/><ellipse cx="26" cy="26" rx="13" ry="6" fill="none" stroke="#e8bb78" stroke-width="2.6"/><path d="M13 32c5 8 21 8 26 0" stroke="#67dec5" fill="none" stroke-width="2.6"/></svg><div><b>SQL Pro 4.0</b><small>Autenticação Supabase · Painel Lima Virtual</small></div></header>
+<section class="card" id="setup" hidden><h1>Conectar ao projeto</h1><p>Crie <code>config.js</code> a partir de <code>config.example.js</code>, usando a URL e a chave publicável do seu projeto Supabase. Depois publique a pasta em um servidor HTTPS (como GitHub Pages).</p></section>
+<section id="auth" class="card" hidden><h1>Entrar ou criar conta</h1><p>O login é verificado pelo Supabase Auth. Sem uma licença ativa, o usuário não verá aplicativos.</p>
+<form id="authForm"><label for="email">E-mail</label><input id="email" type="email" autocomplete="email" required maxlength="254" placeholder="voce@exemplo.com"><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" minlength="12" required placeholder="Mínimo de 12 caracteres"><div class="actions"><button id="signin" type="submit">Entrar</button><button id="signup" class="secondary" type="button">Criar conta</button><button id="reset" class="secondary" type="button">Esqueci a senha</button></div></form></section>
+<section id="passwordRecovery" class="card" hidden><h2>Definir nova senha</h2><p>Escolha uma senha forte para concluir a recuperação de acesso.</p><form id="recoveryForm"><label for="newPassword">Nova senha</label><input id="newPassword" type="password" minlength="12" autocomplete="new-password" required><div class="actions"><button type="submit">Salvar nova senha</button></div></form></section>
+<section id="logged" hidden><div class="card"><h1>Seu Painel Lima Virtual</h1><p>Usuário autenticado: <strong id="who"></strong> <span id="role" class="muted"></span></p><div class="actions"><button class="secondary" id="refresh" type="button">Atualizar aplicativos</button><button class="secondary" id="signout" type="button">Sair com segurança</button></div><hr><h2>Aplicativos liberados</h2><div id="apps"></div><p id="noApps" class="muted">Nenhum aplicativo autorizado. O administrador deve conceder uma licença.</p></div>
+<section class="card" id="admin" hidden><h2>Administração do SQL Pro</h2><p>Somente contas com a função <code>admin</code> podem cadastrar aplicativos e liberar licenças. O servidor aplica essas permissões com RLS.</p><div class="admin-grid"><div><h2>Adicionar aplicativo</h2><form id="appForm"><label for="appSlug">Identificador (slug)</label><input id="appSlug" placeholder="scansoft" pattern="[a-z0-9]+(-[a-z0-9]+)*" required><label for="appTitle">Nome</label><input id="appTitle" required maxlength="120"><label for="appUrl">URL HTTPS</label><input id="appUrl" type="url" placeholder="https://..." required><label for="appCategory">Categoria</label><input id="appCategory" value="Aplicativos"><button style="margin-top:12px" type="submit">Cadastrar</button></form></div>
+<div><h2>Liberar ou revogar licença</h2><form id="licenseForm"><label for="memberId">Usuário</label><select id="memberId" required></select><label for="licenseApp">Aplicativo</label><select id="licenseApp" required></select><label for="licenseStatus">Situação</label><select id="licenseStatus"><option value="active">Liberar acesso</option><option value="revoked">Revogar acesso</option></select><label for="expires">Validade (opcional)</label><input id="expires" type="datetime-local"><button style="margin-top:12px" type="submit">Salvar licença</button></form></div></div></section></section>
+<div class="msg" id="msg" role="status" aria-live="polite">Aguardando configuração…</div>
+<footer>© 2026 Nailson Rodrigues de Lima · SQL Pro · Protótipo de integração Supabase</footer>
+</main>
+<script type="module">
+const $ = id => document.getElementById(id);
+const setMessage = (text, error=false) => { $('msg').textContent = text; $('msg').classList.toggle('error',!!error); };
+const show = (id, yes) => { $(id).hidden = !yes; };
+let sb = null, currentUser = null, active = false, recoveringPassword = false;
+const display = (parent, tag, value) => { const e = document.createElement(tag); e.textContent=value; parent.append(e); return e; };
+function cleanHttps(raw){const url = new URL(raw); if (url.protocol !== 'https:' || url.username || url.password) throw Error('Use uma URL HTTPS sem credenciais.'); return url.href; }
+async function bootstrap(){
+  try {
+    const config = await import('./config.js');
+    if(!config.SUPABASE_URL?.startsWith('https://') || !config.SUPABASE_PUBLISHABLE_KEY?.startsWith('sb_publishable_')) throw Error('Configuração incompleta.');
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    sb = createClient(config.SUPABASE_URL, config.SUPABASE_PUBLISHABLE_KEY);
+    sb.auth.onAuthStateChange((event) => { if(event === 'PASSWORD_RECOVERY'){recoveringPassword = true;show('passwordRecovery', true);show('auth', false);show('logged',false);setMessage('Informe sua nova senha.');return;} window.setTimeout(() => { void refreshSession(); }, 0); });
+    await refreshSession();
+  } catch (e) { show('setup', true); show('auth', false); show('logged', false); setMessage('Configuração não iniciada: '+e.message, true); }
+}
+async function refreshSession(){
+  const {data, error} = await sb.auth.getUser();
+  currentUser = error ? null : data.user;
+  show('auth',!currentUser && !recoveringPassword); show('logged',!!currentUser && !recoveringPassword); if(recoveringPassword){show('passwordRecovery',true);show('admin',false);return;}
+  if(!currentUser){show('admin',false);setMessage('Você ainda não entrou na conta.');return;}
+  $('who').textContent = currentUser.email || currentUser.id;
+  const {data:profile, error:profileErr} = await sb.from('sqlpro_profiles').select('user_id,role,is_active').eq('user_id',currentUser.id).single();
+  if(profileErr){setMessage('Não foi possível consultar o perfil: '+profileErr.message, true);return;}
+  active=!!profile?.is_active;
+  $('role').textContent= active ? '· '+(profile.role==='admin'?'Administrador':'Membro') : '· Conta bloqueada';
+  show('admin', active && profile.role==='admin');
+  await loadApps();
+  if(active && profile.role==='admin') await loadAdminControls();
+  if (!active) setMessage('Conta desativada pelo administrador.',true);
+  else setMessage('Sessão validada. Catálogo consultado com RLS.');
+}
+async function loadApps(){
+  const {data, error} = await sb.from('sqlpro_apps').select('id,title,description,category,target_url,enabled').order('title');
+  if(error){setMessage('Falha ao consultar catálogo: '+error.message,true);return;}
+  const container=$('apps');container.replaceChildren();
+  for(const app of data||[]){if(!app.enabled)continue;const item=document.createElement('div');item.className='app';const info=document.createElement('div');display(info,'strong',app.title);display(info,'span',app.category+' · '+(app.description||'Aplicativo'));const a=document.createElement('a');a.textContent='Abrir aplicativo';a.target='_blank';a.rel='noopener noreferrer';try{a.href=cleanHttps(app.target_url);}catch{a.removeAttribute('href');a.textContent='URL inválida';}item.append(info,a);container.append(item);}
+  $('noApps').hidden=container.childElementCount>0;
+}
+async function loadAdminControls(){
+  const [users,apps] = await Promise.all([sb.from('sqlpro_profiles').select('user_id,display_name,role,is_active').order('created_at'), sb.from('sqlpro_apps').select('id,title').order('title')]);
+  if(users.error||apps.error){setMessage('Não foi possível carregar lista administrativa: '+(users.error||apps.error).message,true);return;}
+  const selectUser=$('memberId');selectUser.replaceChildren();
+  for(const u of users.data){const op=document.createElement('option');op.value=u.user_id;op.textContent=(u.display_name || u.user_id.slice(0,8))+' · '+(u.role==='admin'?'Admin':'Membro')+(u.is_active?'':' · Bloqueado')+' · '+u.user_id.slice(0,8);selectUser.append(op);}
+  const selectApp=$('licenseApp');selectApp.replaceChildren();
+  for(const a of apps.data){const op=document.createElement('option');op.value=a.id;op.textContent=a.title;selectApp.append(op);}
+}
+$('authForm').addEventListener('submit',async(e)=>{e.preventDefault();const b=$('signin');b.disabled=true;const {error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});b.disabled=false;setMessage(error?'Falha no login: '+error.message:'Login realizado.',!!error);if(!error)await refreshSession();});
+$('signup').addEventListener('click',async()=>{if(!$('authForm').reportValidity())return;const b=$('signup');b.disabled=true;const {error}=await sb.auth.signUp({email:$('email').value.trim(),password:$('password').value,options:{emailRedirectTo:location.origin+location.pathname}});b.disabled=false;setMessage(error?'Falha ao cadastrar: '+error.message:'Solicitação enviada. Verifique seu e-mail para confirmar a conta.',!!error);});
+$('reset').addEventListener('click',async()=>{const email=$('email').value.trim();if(!email){setMessage('Informe o e-mail antes de solicitar a recuperação.',true);return;}const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});setMessage(error?error.message:'Se o e-mail existir, você receberá instruções de recuperação.',!!error);});
+$('recoveryForm').addEventListener('submit', async (e)=>{e.preventDefault();const {error}=await sb.auth.updateUser({password:$('newPassword').value});if(error){setMessage('Falha ao alterar senha: '+error.message,true);return;}recoveringPassword=false;show('passwordRecovery',false);$('newPassword').value='';setMessage('Senha alterada.');await refreshSession();});
+$('signout').addEventListener('click',async()=>{const {error}=await sb.auth.signOut();if(error)setMessage(error.message,true);else await refreshSession();});
+$('refresh').addEventListener('click',()=>void refreshSession());
+$('appForm').addEventListener('submit',async(e)=>{e.preventDefault();try{const target_url=cleanHttps($('appUrl').value);const row={slug:$('appSlug').value.trim(),title:$('appTitle').value.trim(),category:$('appCategory').value.trim()||'Aplicativos',target_url};const {error}=await sb.from('sqlpro_apps').insert(row);if(error)throw error;setMessage('Aplicativo cadastrado.');e.target.reset();await loadAdminControls();await loadApps();}catch(ex){setMessage('Falha ao cadastrar: '+ex.message,true);}});
+$('licenseForm').addEventListener('submit',async(e)=>{e.preventDefault();const expiresAt=$('expires').value;const row={user_id:$('memberId').value,app_id:$('licenseApp').value,status:$('licenseStatus').value,expires_at:expiresAt?new Date(expiresAt).toISOString():null};const {error}=await sb.from('sqlpro_licenses').upsert(row,{onConflict:'user_id,app_id'});if(error)setMessage('Falha ao salvar licença: '+error.message,true);else{setMessage('Licença atualizada.');await loadApps();}});
+void bootstrap();
+</script>
+</body>
+</html>
